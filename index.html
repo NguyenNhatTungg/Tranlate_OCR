@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Drag and Drop File Upload</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <link rel="shortcut icon" href="/assets/favicon.ico">
+  <link rel="stylesheet" href="./src/main.css">
+</head>
+
+<body>
+
+<h1 style="text-align: center;">Tool Manga OCR</h1>
+
+<div id="container-loading">
+  <div class="loader" id="load"></div>
+</div>
+<form class="container" id="uploadForm">
+  <div class="drop-zone">
+    <span class="drop-zone__prompt">Drop file here or click to upload</span>
+    <input type="file" name="myFile" id="fileInput" class="drop-zone__input">
+  </div>
+
+  <div style="display: flex; align-items: center;">
+    <button type="submit" class="btn"><i class="animation"></i>TRANSLATE<i class="animation"></i></button>
+  </div>
+
+  <div id="drop-zone-image">
+  </div>
+</form>
+
+
+  <script src="./src/main.js"></script>
+</body>
+
+<script>
+  // handle api
+  document.getElementById('uploadForm').addEventListener('submit', async function (event) {
+    event.preventDefault(); 
+    
+    const loading = document.getElementById("container-loading");
+    // const loading = document.getElementById("container-loading");
+    loading.style.display = "flex";
+
+    const dropZoneElement = document.getElementById("drop-zone-image");
+    const fileInput = document.getElementById('fileInput');
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+
+    try { // 360 = 100%
+      const response = await fetch('http://localhost:5000/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      console.log(response);
+      const result = await response.json();
+      const messageDiv = document.getElementById('message');
+
+      console.log(result);
+      
+      if (response.ok) {
+            
+        showThumbnail(dropZoneElement, result.filename);
+
+      } else {
+        messageDiv.innerHTML = `<p style='color: red;'>Upload failed! Server response: ${result}</p>`;
+      }
+    } catch (error) {
+      document.getElementById('message').innerHTML = `<p style='color: red;'>Error uploading file!</p>`;
+    } finally {
+      loading.style.display = "none";
+    }
+  });
+
+  function showThumbnail(dropZoneElement, file) {
+    // Clear any existing thumbnails
+    dropZoneElement.innerHTML = '';
+    console.log('file');
+    
+    let thumbnailElement = document.createElement("img");
+    thumbnailElement.classList.add("drop-zone__thumb-image");
+
+    // cập nhật lại ảnh sau khi input file
+
+    
+    dropZoneElement.appendChild(thumbnailElement);
+
+    thumbnailElement.src = file;
+}
+
+</script>
+
+</html>
