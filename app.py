@@ -12,7 +12,6 @@ from deep_translator import GoogleTranslator
 import glob
 import shutil
 from flask_cors import CORS
-import random
 
 
 CLIENT = InferenceHTTPClient(
@@ -33,10 +32,8 @@ path_result = 'D:\Learn\FLASK_API\img_result\\'
 font_size = 16
 
 
-def getResponseTranslateManga(path, index):
-  print('start '+ index)
+def getResponseTranslateManga(path, filename):
   imgPIL = Image.open(path)
-  print('start--'+ index)
 
   results = CLIENT.infer(path, model_id="manga-text-detection-xyvbw/2")
   for res_idx, res in enumerate(results['predictions']):
@@ -61,7 +58,7 @@ def getResponseTranslateManga(path, index):
     for line in textwrap.wrap(textTranslate, width=int(width / 5)):
         draw.text((x - 10, offset - 10), line, fill="black", font = font)
         offset += font_size
-  filePath = path_result + str(random.randint(10, 100)) + '_images_translated_.png'
+  filePath = path_result + filename + '_images_translated_.png'
   imgPIL.save(filePath)
 
   return filePath
@@ -97,6 +94,18 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def delete_files_in_directory(directory_path):
+    try:
+        files = os.listdir(directory_path)
+        for file in files:
+            file_path = os.path.join(directory_path, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        print("All files deleted successfully.")
+    except:
+        print("Error occurred while deleting files.")
+
+
 @app.route('/upload', methods=['POST', 'GET'])
 def upload_file():
     if 'file' not in request.files:
@@ -107,23 +116,36 @@ def upload_file():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     
+    delete_files_in_directory('D:\\Learn\\FLASK_API\\uploads')
+
     if file and allowed_file(file.filename):
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'contexts.jpg')
+        filename = secure_filename(file.filename)
+        print(filename);
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         print(file_path)
         file.save(file_path)
 
-        filess = sorted(glob.glob("D:\\Learn\\FLASK_API\\uploads\\*"))
-        for index, filee in enumerate(filess):
-            filePath = getResponseTranslateManga(filee, str(index))
+        file_path = os.path.join("D:\\Learn\\FLASK_API\\uploads", filename)
+        filePath = getResponseTranslateManga('D:\\Learn\\FLASK_API\\uploads\\' + filename, filename)
 
-        files = glob.glob('D:\\Learn\\FLASK_API\\uploads\\*')
         # for f in files:
         #     os.remove(f)
         os.remove("./context.jpg")
         return jsonify({'message': 'File successfully uploaded', 'filename': filePath}), 200
     else:
         return jsonify({'error': 'Invalid file type'}), 400
-    
+
+
+@app.route('/zip', methods=['POST', 'GET'])
+def zip_file():
+    shutil.make_archive('D:\\Learn\\FLASK_API\\result', 'zip', path_result)
+    return jsonify({'message': 'zip successfully'}), 200
+
+@app.route('/clean', methods=['POST', 'GET'])
+def clean():
+    delete_files_in_directory('D:\\Learn\\FLASK_API\\img_result')
+    return jsonify({'message': 'clean successfully'}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

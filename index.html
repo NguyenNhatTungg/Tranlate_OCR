@@ -1,98 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-  <title>Drag and Drop File Upload</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta charset="utf-8">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-  <link rel="shortcut icon" href="/assets/favicon.ico">
-  <link rel="stylesheet" href="./src/main.css">
+  <title>Translate manga photos from Japanese to Vietnamese</title>
+  <link rel="stylesheet" href="./src/style.css">
 </head>
 
 <body>
 
-<h1 style="text-align: center;">Tool Manga OCR</h1>
+  <h1>Translate manga Japanese to Vietnamese</h1>
 
-<div id="container-loading">
-  <div class="loader" id="load"></div>
-</div>
-<form class="container" id="uploadForm">
-  <div class="drop-zone">
-    <span class="drop-zone__prompt">Drop file here or click to upload</span>
-    <input type="file" name="myFile" id="fileInput" class="drop-zone__input">
+  <p><h3>Developer</h3> Phạm Thị Ánh Hồng</p>
+
+  <p><h3>Technology</h3>Pure Javascript, HTML, Python, and AI API modules.</p>
+
+  <p><h3>Model Description</h3> The website uses the <code>YOLO</code> model to determine the location of text in an image and the <code>kha-white/manga-ocr</code> model to determine whether the text in the image is Japanese and translate it into Vietnamese.</p>
+
+  <p><h3>Instructions for use</h3> Select the folder containing the manga image file to be translated -> Click the Translate button -> Click the link to download the translated folder.</p>
+
+  <h3>Choose Folder</h3>
+  <!-- <div class="picker"><input type="file" id="picker" name="fileList" webkitdirectory multiple></div> -->
+
+  <form class="container" id="uploadForm">
+    <div class="drop-zone">
+      <span class="drop-zone__prompt">Drop file here or click to upload</span>
+      <div class="picker"><input type="file" id="fileInput" name="fileList" webkitdirectory multiple></div>
+    </div>
+    
+    <div style="margin-top: 10px; margin-bottom: 10px;" style="display: flex; align-items: center;">
+      <button type="submit" class="btn"><i class="animation"></i>TRANSLATE<i class="animation"></i></button>
+    </div>
+    
+    <div id="drop-zone-image">
+    </div>
+  </form>
+  
+  <h3>Progress</h3>
+  <div id="myProgress">
+    <div id="myBar"></div>
   </div>
-
-  <div style="display: flex; align-items: center;">
-    <button type="submit" class="btn"><i class="animation"></i>TRANSLATE<i class="animation"></i></button>
-  </div>
-
-  <div id="drop-zone-image">
-  </div>
-</form>
-
-
+  
+  <h3 style="padding-bottom: 0px;">Files Uploaded</h3>
+  
+  <a href="file:\\\D:\Learn\FLASK_API\result.zip">
+    Click to download resualt.
+  </a>
   <script src="./src/main.js"></script>
-</body>
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async function (event) {
+      event.preventDefault();
 
-<script>
-  // handle api
-  document.getElementById('uploadForm').addEventListener('submit', async function (event) {
-    event.preventDefault(); 
-    
-    const loading = document.getElementById("container-loading");
-    // const loading = document.getElementById("container-loading");
-    loading.style.display = "flex";
-
-    const dropZoneElement = document.getElementById("drop-zone-image");
-    const fileInput = document.getElementById('fileInput');
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-
-
-    try { // 360 = 100%
-      const response = await fetch('http://localhost:5000/upload', {
-        method: 'POST',
-        body: formData
+      await fetch('http://localhost:5000/clean', {
+        method: 'POST'
       });
-      
-      console.log(response);
-      const result = await response.json();
-      const messageDiv = document.getElementById('message');
 
-      console.log(result);
-      
-      if (response.ok) {
-            
-        showThumbnail(dropZoneElement, result.filename);
+      const fileInput = document.getElementById('fileInput');
+      const process = document.getElementById('myBar');
+      let progressLimit = 0;
+      let progress = 1;
+      let isOk = false;
 
-      } else {
-        messageDiv.innerHTML = `<p style='color: red;'>Upload failed! Server response: ${result}</p>`;
+      for (const file of fileInput.files) {
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        isOk = false;
+
+        const response = fetch('http://localhost:5000/upload', {
+          method: 'POST',
+          body: formData
+        }).then(res => isOk = res.ok);
+
+        progressLimit += 100 / fileInput.files.length;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        for(let i = progress; i < progressLimit; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (isOk) {
+            progress = progressLimit - 5;
+            process.style.width = `${progress}%`; 
+            isOk = false;
+            break;
+          }
+          process.style.width = `${i}%`;
+        }
       }
-    } catch (error) {
-      document.getElementById('message').innerHTML = `<p style='color: red;'>Error uploading file!</p>`;
-    } finally {
-      loading.style.display = "none";
-    }
-  });
 
-  function showThumbnail(dropZoneElement, file) {
-    // Clear any existing thumbnails
-    dropZoneElement.innerHTML = '';
-    console.log('file');
-    
-    let thumbnailElement = document.createElement("img");
-    thumbnailElement.classList.add("drop-zone__thumb-image");
+      const resZip = await fetch('http://localhost:5000/zip', {
+        method: 'POST',
+      });
 
-    // cập nhật lại ảnh sau khi input file
+      process.style.width = `${100}%`; 
 
-    
-    dropZoneElement.appendChild(thumbnailElement);
+      
+    })
 
-    thumbnailElement.src = file;
-}
 
-</script>
+  </script>
+</body>
 
 </html>
